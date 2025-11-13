@@ -5,7 +5,7 @@ const GITHUB_PAGES_URL = 'https://J0rgZ.github.io/RideUPT';
 const GITHUB_DOWNLOAD_URL = `${GITHUB_PAGES_URL}/RideUPT.apk`;
 const GITHUB_REPO_URL = `https://github.com/${GITHUB_REPO}`;
 
-// Función para generar el QR code
+// Función para generar el QR code usando API externa (método principal y más confiable)
 function generateQRCode() {
     const qrContainer = document.getElementById('qrcode');
     if (!qrContainer) {
@@ -13,75 +13,78 @@ function generateQRCode() {
         return;
     }
 
-    // Verificar que la librería QRCode esté cargada
-    if (typeof QRCode === 'undefined') {
-        console.error('La librería QRCode no está cargada');
-        qrContainer.innerHTML = '<p style="color: red; padding: 20px;">Error: La librería QR no se cargó correctamente. Recarga la página.</p>';
-        return;
-    }
-
     // Limpiar el contenedor
     qrContainer.innerHTML = '';
     
-    // Crear un canvas para el QR code
-    const canvas = document.createElement('canvas');
-    qrContainer.appendChild(canvas);
-    
-    // URL para el QR (usar la URL actual de la página + /RideUPT.apk)
-    const currentUrl = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '') + '/RideUPT.apk';
-    const qrUrl = GITHUB_DOWNLOAD_URL || currentUrl;
+    // URL para el QR - usar la URL actual si estamos en GitHub Pages, sino la URL configurada
+    let qrUrl;
+    if (window.location.hostname.includes('github.io')) {
+        // Estamos en GitHub Pages
+        const baseUrl = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '');
+        qrUrl = baseUrl + '/RideUPT.apk';
+    } else {
+        // Estamos en local o otro servidor
+        qrUrl = GITHUB_DOWNLOAD_URL;
+    }
     
     console.log('Generando QR para:', qrUrl);
-    
-    // Generar el QR code con la URL de descarga
-    try {
-        QRCode.toCanvas(canvas, qrUrl, {
-            width: 256,
-            colorDark: '#6366f1',
-            colorLight: '#ffffff',
-            errorCorrectionLevel: 'H',
-            margin: 2
-        }, function (error) {
-            if (error) {
-                console.error('Error al generar QR:', error);
-                qrContainer.innerHTML = '<p style="color: red; padding: 20px;">Error al generar código QR. Intenta recargar la página.</p>';
-            } else {
-                console.log('QR generado exitosamente');
-            }
-        });
-    } catch (error) {
-        console.error('Excepción al generar QR:', error);
-        qrContainer.innerHTML = '<p style="color: red; padding: 20px;">Error al generar código QR. Intenta recargar la página.</p>';
-    }
-}
 
-// Función para esperar a que la librería QRCode se cargue
-function waitForQRCode(callback, maxAttempts = 50) {
-    let attempts = 0;
-    const checkQRCode = setInterval(function() {
-        attempts++;
-        if (typeof QRCode !== 'undefined') {
-            clearInterval(checkQRCode);
-            console.log('Librería QRCode cargada');
-            callback();
-        } else if (attempts >= maxAttempts) {
-            clearInterval(checkQRCode);
-            console.error('Timeout: La librería QRCode no se cargó después de', maxAttempts, 'intentos');
-            const qrContainer = document.getElementById('qrcode');
-            if (qrContainer) {
-                qrContainer.innerHTML = '<p style="color: red; padding: 20px;">Error: No se pudo cargar la librería QR. Verifica tu conexión a internet.</p>';
-            }
-        }
-    }, 100);
+    // Usar API externa de QR code (método más confiable y sin dependencias)
+    const encodedUrl = encodeURIComponent(qrUrl);
+    const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodedUrl}&color=6366f1&bgcolor=ffffff&margin=2`;
+    
+    const img = document.createElement('img');
+    img.src = qrApiUrl;
+    img.alt = 'Código QR - Escanea para descargar RideUPT';
+    img.style.width = '256px';
+    img.style.height = '256px';
+    img.style.display = 'block';
+    img.style.margin = '0 auto';
+    img.style.borderRadius = '8px';
+    
+    // Mostrar mensaje de carga
+    qrContainer.innerHTML = '<p style="color: #6366f1; padding: 20px;">Cargando código QR...</p>';
+    
+    img.onload = function() {
+        console.log('QR cargado exitosamente');
+        qrContainer.innerHTML = '';
+        qrContainer.appendChild(img);
+    };
+    
+    img.onerror = function() {
+        console.error('Error al cargar QR desde API externa');
+        // Intentar con otra API de respaldo
+        const backupApiUrl = `https://chart.googleapis.com/chart?chs=256x256&cht=qr&chl=${encodedUrl}`;
+        const backupImg = document.createElement('img');
+        backupImg.src = backupApiUrl;
+        backupImg.alt = 'Código QR';
+        backupImg.style.width = '256px';
+        backupImg.style.height = '256px';
+        backupImg.style.display = 'block';
+        backupImg.style.margin = '0 auto';
+        
+        backupImg.onerror = function() {
+            qrContainer.innerHTML = '<p style="color: red; padding: 20px;">Error al cargar código QR. Por favor, usa el botón de descarga directa.</p>';
+        };
+        
+        backupImg.onload = function() {
+            qrContainer.innerHTML = '';
+            qrContainer.appendChild(backupImg);
+        };
+        
+        qrContainer.innerHTML = '';
+        qrContainer.appendChild(backupImg);
+    };
+    
+    // Agregar la imagen al contenedor
+    qrContainer.appendChild(img);
 }
 
 // Actualizar enlaces cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOM cargado, esperando librería QRCode...');
-    // Esperar a que la librería QRCode se cargue antes de generar el QR
-    waitForQRCode(function() {
-        generateQRCode();
-    });
+    console.log('DOM cargado, generando QR...');
+    // Generar QR inmediatamente usando API externa (método confiable)
+    generateQRCode();
     
     // Actualizar enlaces de descarga
     const downloadBtn = document.getElementById('downloadBtn');
