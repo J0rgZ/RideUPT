@@ -31,7 +31,7 @@ function generateQRCode() {
 
     // Usar API externa de QR code (método más confiable y sin dependencias)
     const encodedUrl = encodeURIComponent(qrUrl);
-    const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodedUrl}&color=6366f1&bgcolor=ffffff&margin=2`;
+    const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodedUrl}&color=2563eb&bgcolor=ffffff&margin=2`;
     
     const img = document.createElement('img');
     img.src = qrApiUrl;
@@ -43,7 +43,7 @@ function generateQRCode() {
     img.style.borderRadius = '8px';
     
     // Mostrar mensaje de carga
-    qrContainer.innerHTML = '<p style="color: #6366f1; padding: 20px;">Cargando código QR...</p>';
+            qrContainer.innerHTML = '<p style="color: #2563eb; padding: 20px;">Cargando código QR...</p>';
     
     img.onload = function() {
         console.log('QR cargado exitosamente');
