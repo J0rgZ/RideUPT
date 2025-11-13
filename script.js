@@ -7,17 +7,35 @@ const GITHUB_REPO_URL = `https://github.com/${GITHUB_REPO}`;
 
 // Función para generar el QR code
 function generateQRCode() {
-    // Limpiar el contenedor si ya existe un QR
     const qrContainer = document.getElementById('qrcode');
-    if (qrContainer) {
-        qrContainer.innerHTML = '';
-        
-        // Crear un canvas para el QR code
-        const canvas = document.createElement('canvas');
-        qrContainer.appendChild(canvas);
-        
-        // Generar el QR code con la URL de descarga
-        QRCode.toCanvas(canvas, GITHUB_DOWNLOAD_URL, {
+    if (!qrContainer) {
+        console.error('No se encontró el contenedor del QR');
+        return;
+    }
+
+    // Verificar que la librería QRCode esté cargada
+    if (typeof QRCode === 'undefined') {
+        console.error('La librería QRCode no está cargada');
+        qrContainer.innerHTML = '<p style="color: red; padding: 20px;">Error: La librería QR no se cargó correctamente. Recarga la página.</p>';
+        return;
+    }
+
+    // Limpiar el contenedor
+    qrContainer.innerHTML = '';
+    
+    // Crear un canvas para el QR code
+    const canvas = document.createElement('canvas');
+    qrContainer.appendChild(canvas);
+    
+    // URL para el QR (usar la URL actual de la página + /RideUPT.apk)
+    const currentUrl = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '') + '/RideUPT.apk';
+    const qrUrl = GITHUB_DOWNLOAD_URL || currentUrl;
+    
+    console.log('Generando QR para:', qrUrl);
+    
+    // Generar el QR code con la URL de descarga
+    try {
+        QRCode.toCanvas(canvas, qrUrl, {
             width: 256,
             colorDark: '#6366f1',
             colorLight: '#ffffff',
@@ -26,16 +44,44 @@ function generateQRCode() {
         }, function (error) {
             if (error) {
                 console.error('Error al generar QR:', error);
-                qrContainer.innerHTML = '<p style="color: red;">Error al generar código QR</p>';
+                qrContainer.innerHTML = '<p style="color: red; padding: 20px;">Error al generar código QR. Intenta recargar la página.</p>';
+            } else {
+                console.log('QR generado exitosamente');
             }
         });
+    } catch (error) {
+        console.error('Excepción al generar QR:', error);
+        qrContainer.innerHTML = '<p style="color: red; padding: 20px;">Error al generar código QR. Intenta recargar la página.</p>';
     }
+}
+
+// Función para esperar a que la librería QRCode se cargue
+function waitForQRCode(callback, maxAttempts = 50) {
+    let attempts = 0;
+    const checkQRCode = setInterval(function() {
+        attempts++;
+        if (typeof QRCode !== 'undefined') {
+            clearInterval(checkQRCode);
+            console.log('Librería QRCode cargada');
+            callback();
+        } else if (attempts >= maxAttempts) {
+            clearInterval(checkQRCode);
+            console.error('Timeout: La librería QRCode no se cargó después de', maxAttempts, 'intentos');
+            const qrContainer = document.getElementById('qrcode');
+            if (qrContainer) {
+                qrContainer.innerHTML = '<p style="color: red; padding: 20px;">Error: No se pudo cargar la librería QR. Verifica tu conexión a internet.</p>';
+            }
+        }
+    }, 100);
 }
 
 // Actualizar enlaces cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', function() {
-    // Generar QR code
-    generateQRCode();
+    console.log('DOM cargado, esperando librería QRCode...');
+    // Esperar a que la librería QRCode se cargue antes de generar el QR
+    waitForQRCode(function() {
+        generateQRCode();
+    });
     
     // Actualizar enlaces de descarga
     const downloadBtn = document.getElementById('downloadBtn');
